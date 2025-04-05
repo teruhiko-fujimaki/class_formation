@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>クラス編成システム</title>
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        .container {
+            display: flex;
+            gap: 2rem;
+            padding: 2rem;
+            height: calc(100vh - 200px);
+        }
+        .class-section {
+            flex: 2;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            overflow-y: auto;
+        }
+        .student-section {
+            flex: 1;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            overflow-y: auto;
+        }
+        .class-list {
+            display: grid;
+            gap: 1rem;
+        }
+        .class-card {
+            background: white;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 1rem;
+            min-height: 150px;
+            cursor: move;
+        }
+        .class-card h3 {
+            margin: 0 0 1rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #ddd;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .class-card h3::before {
+            content: "☰";
+            font-size: 1.2rem;
+            color: #666;
+        }
+        .class-card h3:hover::before {
+            color: #333;
+        }
+        .student-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 0.5rem;
+        }
+        .student-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0.5rem;
+            cursor: move;
+            transition: all 0.3s ease;
+            position: relative;
+            font-size: 0.8rem;
+        }
+        .student-card:hover {
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .student-card.dragging {
+            opacity: 0.5;
+        }
+        .class-card.drag-over {
+            border: 2px dashed #333;
+            background: #f8f9fa;
+        }
+        .student-info {
+            margin: 0;
+            font-size: 0.7rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+        }
+        .student-gender {
+            font-size: 0.6rem;
+            color: #666;
+        }
+        .student-count {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.5rem;
+            line-height: 1.5;
+        }
+        .student-count br {
+            margin: 0.25rem 0;
+        }
+        .add-class-form {
+            margin-bottom: 1rem;
+        }
+        .add-class-form input {
+            padding: 0.5rem;
+            margin-right: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .add-class-form button {
+            background-color: #333;
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .add-class-form button:hover {
+            background-color: #444;
+        }
+        .student-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .header-buttons {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .reset-btn {
+            background-color: #dc3545;
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .reset-btn:hover {
+            background-color: #c82333;
+        }
+        .upload-form {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .upload-form input[type="file"] {
+            display: none;
+        }
+        .upload-form label {
+            background-color: #333;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .upload-form label:hover {
+            background-color: #444;
+        }
+        .student-card .remove-btn {
+            position: absolute;
+            top: 0.1rem;
+            right: 0.1rem;
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 2px;
+            width: 16px;
+            height: 16px;
+            line-height: 16px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 10px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .student-card:hover .remove-btn {
+            opacity: 1;
+        }
+        .student-card .remove-btn:hover {
+            background: #cc0000;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h2>クラス編成</h2>
+    </header>
+
+    <div>
+       1.右側の生徒一覧にCSVファイルをインポートしてください<br/>
+       2.生徒一覧が表示されます<br/>
+       3.左側の学級一覧に、学級を追加してください<br/>
+       4.ドラッグアンドドラッグで生徒を学級へ参加させてください 
+    </div>
+
+    <main>
+        <div class="container">
+            <div class="class-section">
+                <h2>学級一覧</h2>
+                <form class="add-class-form" id="addClassForm">
+                    <input type="text" id="className" placeholder="学級名" required>
+                    <button type="submit">学級を追加</button>
+                </form>
+                <div class="class-list" id="classList">
+                    <!-- 学級カードがここに動的に追加されます -->
+                </div>
+            </div>
+
+            <div class="student-section">
+                <div class="student-header">
+                    <h2>生徒一覧</h2>
+                    <div class="header-buttons">
+                        <form class="upload-form" id="uploadForm">
+                            <label for="csvFile">CSVファイルを選択</label>
+                            <input type="file" id="csvFile" accept=".csv" required>
+                            <button type="submit">インポート</button>
+                        </form>
+                        <button class="reset-btn" id="resetBtn">データを初期化</button>
+                    </div>
+                </div>
+                <div class="student-list" id="studentList">
+                    <!-- 生徒カードがここに動的に追加されます -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 クラス編成システム. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // ドラッグ&ドロップの実装
+        function setupDragAndDrop() {
+            const studentCards = document.querySelectorAll('.student-card');
+            const classCards = document.querySelectorAll('.class-card');
+
+            studentCards.forEach(card => {
+                card.draggable = true;
+                card.addEventListener('dragstart', handleDragStart);
+                card.addEventListener('dragend', handleDragEnd);
+            });
+
+            classCards.forEach(card => {
+                card.addEventListener('dragover', handleDragOver);
+                card.addEventListener('dragleave', handleDragLeave);
+                card.addEventListener('drop', handleDrop);
+            });
+        }
+
+        function handleDragStart(e) {
+            e.target.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', e.target.dataset.studentId);
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            const studentId = e.dataTransfer.getData('text/plain');
+            const classId = e.currentTarget.dataset.classId;
+            
+            // サーバーに生徒の移動を通知
+            moveStudentToClass(studentId, classId);
+        }
+
+        // 学級の追加
+        document.getElementById('addClassForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const className = document.getElementById('className').value;
+            addClass(className);
+            this.reset();
+        });
+
+        // データの読み込み
+        function loadData() {
+            // 生徒データの読み込み
+            fetch('/students')
+                .then(response => response.json())
+                .then(students => {
+                    // 学級データを先に取得して、所属生徒を確認
+                    fetch('/classes')
+                        .then(response => response.json())
+                        .then(classes => {
+                            // 学級に所属している生徒のIDを取得
+                            const assignedStudentIds = new Set();
+                            classes.forEach(classData => {
+                                classData.students.forEach(student => {
+                                    assignedStudentIds.add(student.id);
+                                });
+                            });
+
+                            // 学級に所属していない生徒のみを表示
+                            const studentList = document.getElementById('studentList');
+                            studentList.innerHTML = '';
+                            students.forEach(student => {
+                                if (!assignedStudentIds.has(student.id)) {
+                                    const card = createStudentCard(student);
+                                    studentList.appendChild(card);
+                                }
+                            });
+                            setupDragAndDrop();
+
+                            // 学級カードの表示
+                            const classList = document.getElementById('classList');
+                            classList.innerHTML = '';
+                            classes.forEach(classData => {
+                                const card = createClassCard(classData);
+                                classList.appendChild(card);
+                            });
+                            setupDragAndDrop();
+                        });
+                });
+        }
+
+        // 生徒カードの作成
+        function createStudentCard(student) {
+            const card = document.createElement('div');
+            card.className = 'student-card';
+            card.dataset.studentId = student.id;
+            card.innerHTML = `
+                <button class="remove-btn" onclick="removeStudentFromClass(${student.id}, ${student.class_id})">×</button>
+                <p class="student-info">${student.name}</p>
+                <p class="student-info">${student.student_id}</p>
+                <p class="student-gender">性別: ${student.gender}</p>
+            `;
+            return card;
+        }
+
+        // 学級カードの作成
+        function createClassCard(classData) {
+            const card = document.createElement('div');
+            card.className = 'class-card';
+            card.dataset.classId = classData.id;
+
+            // 性別ごとの人数を計算
+            const maleCount = classData.students.filter(s => s.gender === '男' || s.gender === 'M').length;
+            const femaleCount = classData.students.filter(s => s.gender === '女' || s.gender === 'F').length;
+
+            card.innerHTML = `
+                <h3 draggable="true">${classData.name}</h3>
+                <div class="student-count">
+                    生徒数: ${classData.students.length}名
+                    <br>
+                    男子: ${maleCount}名
+                    <br>
+                    女子: ${femaleCount}名
+                </div>
+                <div class="student-list">
+                    ${classData.students.map(student => `
+                        <div class="student-card" data-student-id="${student.id}">
+                            <button class="remove-btn" onclick="removeStudentFromClass(${student.id}, ${classData.id})">×</button>
+                            <p class="student-info">${student.name}</p>
+                            <p class="student-info">${student.student_id}</p>
+                            <p class="student-gender">性別: ${student.gender}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            return card;
+        }
+
+        // 学級の追加
+        function addClass(className) {
+            fetch('/classes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name: className })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const card = createClassCard(data);
+                document.getElementById('classList').appendChild(card);
+                setupDragAndDrop();
+            });
+        }
+
+        // 生徒の移動
+        function moveStudentToClass(studentId, classId) {
+            fetch('/move-student', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ student_id: studentId, class_id: classId })
+            })
+            .then(response => response.json())
+            .then(() => {
+                loadData(); // データを再読み込み
+            });
+        }
+
+        // 生徒を学級から削除
+        function removeStudentFromClass(studentId, classId) {
+            fetch('/remove-student', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ student_id: studentId, class_id: classId })
+            })
+            .then(response => response.json())
+            .then(() => {
+                loadData(); // データを再読み込み
+            });
+        }
+
+        // CSVファイルのアップロード処理
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('ファイルを選択してください');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alert(data.message);
+                    loadData(); // 生徒一覧を更新
+                } else if (data.error) {
+                    alert(data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('アップロードに失敗しました');
+            });
+
+            // フォームをリセット
+            this.reset();
+        });
+
+        // データの初期化
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            if (confirm('すべてのデータを初期化します。この操作は取り消せません。よろしいですか？')) {
+                fetch('/reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    loadData(); // 画面を更新
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('データの初期化に失敗しました');
+                });
+            }
+        });
+
+        // 学級の並び替え機能
+        function setupClassSorting() {
+            const classList = document.getElementById('classList');
+            const classCards = document.querySelectorAll('.class-card h3');
+
+            classCards.forEach(handle => {
+                handle.draggable = true;
+                handle.addEventListener('dragstart', handleClassDragStart);
+                handle.addEventListener('dragend', handleClassDragEnd);
+            });
+
+            classList.addEventListener('dragover', handleClassDragOver);
+            classList.addEventListener('drop', handleClassDrop);
+        }
+
+        function handleClassDragStart(e) {
+            const card = e.target.closest('.class-card');
+            card.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', card.dataset.classId);
+        }
+
+        function handleClassDragEnd(e) {
+            const card = e.target.closest('.class-card');
+            card.classList.remove('dragging');
+        }
+
+        function handleClassDragOver(e) {
+            e.preventDefault();
+            const draggingCard = document.querySelector('.class-card.dragging');
+            const classCards = [...document.querySelectorAll('.class-card:not(.dragging)')];
+            const closestCard = getClosestCard(classCards, e.clientY);
+            
+            if (closestCard) {
+                const rect = closestCard.getBoundingClientRect();
+                const isBefore = e.clientY < rect.top + rect.height / 2;
+                if (isBefore) {
+                    classList.insertBefore(draggingCard, closestCard);
+                } else {
+                    classList.insertBefore(draggingCard, closestCard.nextSibling);
+                }
+            }
+        }
+
+        function handleClassDrop(e) {
+            e.preventDefault();
+            const classId = e.dataTransfer.getData('text/plain');
+            const classCards = [...document.querySelectorAll('.class-card')];
+            const newOrder = classCards.map(card => card.dataset.classId);
+            
+            // 新しい順序をサーバーに送信
+            updateClassOrder(newOrder);
+        }
+
+        function getClosestCard(cards, y) {
+            return cards.reduce((closest, card) => {
+                const rect = card.getBoundingClientRect();
+                const offset = y - rect.top - rect.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset, element: card };
+                }
+                return closest;
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function updateClassOrder(newOrder) {
+            fetch('/update-class-order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ order: newOrder })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Error updating class order:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        // 既存のsetupDragAndDrop関数の後にsetupClassSortingを呼び出す
+        function initialize() {
+            setupDragAndDrop();
+            setupClassSorting();
+            loadData(); // データを読み込む
+        }
+
+        // ページ読み込み時に初期化
+        document.addEventListener('DOMContentLoaded', initialize);
+    </script>
+</body>
+</html> 
