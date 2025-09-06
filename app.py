@@ -5,7 +5,7 @@ import os
 
 app = Flask(__name__)
 
-# データベースの初期化
+# データベースの初期化を行います
 def init_db():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
